@@ -5,7 +5,6 @@ import json
 import nmap
 import requests
 from bs4 import BeautifulSoup
-import threading
 import os
 import platform
 import socket
@@ -13,12 +12,16 @@ import psutil
 from flask_sqlalchemy import SQLAlchemy
 from flask import send_from_directory
 
-
+# Initialize Flask App
 app = Flask(__name__)
+app.secret_key = "your_secret_key"  # Needed for session management
+
+# Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:shubham123@localhost:5432/sign_up'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# Signup Model
 class Signup(db.Model):
     __tablename__ = "signups"
     id = db.Column(db.Integer, primary_key=True)
@@ -28,13 +31,14 @@ class Signup(db.Model):
 with app.app_context():
     db.create_all()
 
-# Load email configuration from JSON
+# Load Email Config
 try:
     with open('config.json', 'r') as f:
         params = json.load(f).get('param', {})
 except (FileNotFoundError, json.JSONDecodeError):
     params = {}
 
+# Email Configuration
 app.config.update({
     'MAIL_SERVER': 'smtp.gmail.com',
     'MAIL_PORT': 587,
@@ -47,6 +51,8 @@ app.config.update({
 
 mail = Mail(app)
 
+# ------------------ Routes ------------------ #
+
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -58,6 +64,8 @@ def signup():
 @app.route('/scanner')
 def scanner_page():
     return render_template('scanner.html')
+
+# ------------------ OTP Verification ------------------ #
 
 @app.route('/send_otp', methods=['POST'])
 def send_otp():
@@ -84,6 +92,7 @@ def send_otp():
         mail.send(msg)
         return jsonify({"message": "OTP Sent Successfully! Check your email.", "status": "success"})
     except Exception as e:
+        print("Error sending OTP:", str(e))
         return jsonify({"message": f"Error sending OTP: {str(e)}", "status": "error"})
 
 @app.route('/validate', methods=['POST'])
@@ -100,7 +109,8 @@ def validate():
 
     return jsonify({"message": "Invalid OTP, please try again.", "status": "error"})
 
-# System Scanner Function
+# ------------------ System Scanner ------------------ #
+
 @app.route("/scan_system", methods=["POST"])
 def system_scan():
     system_name = request.form.get("systemName")
@@ -123,10 +133,11 @@ def system_scan():
     except socket.gaierror:
         return jsonify({"error": "Invalid system name or IP address"}), 400
 
-# Network Scanner
+# ------------------ Network Scanner ------------------ #
+
 @app.route("/start_scan", methods=["POST"])
 def start_scan():
-    ip = request.form["ipAddress"]
+    ip = request.form.get("ipAddress")
     if not ip:
         return jsonify({"error": "No IP provided"}), 400
     try:
@@ -136,9 +147,11 @@ def start_scan():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+# ------------------ Web Scanner ------------------ #
+
 @app.route("/scan_website", methods=["POST"])
 def website_scan():
-    url = request.form["website"]
+    url = request.form.get("website")
     if not url:
         return jsonify({"error": "No URL provided"}), 400
     try:
@@ -150,16 +163,21 @@ def website_scan():
         return jsonify({"result": {"title": title, "missing_headers": missing_headers}})
     except Exception as e:
         return jsonify({"error": str(e)})
+
+# ------------------ Logout ------------------ #
+
 @app.route('/logout')
 def logout():
-    session.clear()  # Clears all session data
-    return redirect(url_for('home'))  # Redirects to home or login page
+    session.clear()
+    return redirect(url_for('home'))
 
-#fevicon icon 
+# ------------------ Favicon ------------------ #
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory("static", "favicon.ico", mimetype="image/x-icon")
 
+# ------------------ Run Flask App ------------------ #
 
 if __name__ == "__main__":
-    app.run(debug=True)                                                                                                                                    
+    app.run(debug=True)
