@@ -76,7 +76,7 @@
             .then(data => {
                 alert(data.message);
                 if (data.status === "success") {
-                    window.location.href = "/scanner";  // Scanner Page Redirect
+                    window.location.href = data.redirect;
                 }
             })
             .catch(error => alert("Error validating OTP!"));

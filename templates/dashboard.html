@@ -1,5 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}" />
+</head>
+<body>
+    <header>
+        <h1>Welcome to Your Dashboard</h1>
+        <nav>
+            <a href="/scanner">Start Scanning</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
 
-<html>
-    <h1>This is Dashboard</h1>
+    <main>
+        <section>
+            <h2>User Dashboard</h2>
+            <p>You have successfully logged in!</p>
+        </section>
+    </main>
 
+    <footer>
+        <p>&copy; 2025 Automated Vulnerability Scanner</p>
+    </footer>
+</body>
 </html>

@@ -11,7 +11,7 @@ import socket
 import psutil
 from flask_sqlalchemy import SQLAlchemy
 from flask import send_from_directory
-
+from Database import db
 # Initialize Flask App
 app = Flask(__name__)
 app.secret_key = "your_secret_key"  # Needed for session management
@@ -65,6 +65,11 @@ def signup():
 def scanner_page():
     return render_template('scanner.html')
 
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')  # Make sure you have this file
+
+
 # ------------------ OTP Verification ------------------ #
 
 @app.route('/send_otp', methods=['POST'])
@@ -95,6 +100,38 @@ def send_otp():
         print("Error sending OTP:", str(e))
         return jsonify({"message": f"Error sending OTP: {str(e)}", "status": "error"})
 
+# @app.route('/send_otp', methods=['POST'])
+# def send_otp():
+#     email = request.form.get('email')
+#     if not email:
+#         return jsonify({"message": "Please enter a valid email!", "status": "error"})
+
+#     otp_code = str(random.randint(100000, 999999))
+#     session['otp'] = otp_code
+#     session['email'] = email
+
+#     user = Signup.query.filter_by(gmail=email).first()
+    
+#     if user:
+#         user.otp = otp_code
+#         redirect_page = url_for('dashboard')  # ✅ dashboard route exists?
+#     else:
+#         user = Signup(gmail=email, otp=otp_code)
+#         db.session.add(user)
+#         redirect_page = url_for('scanner_page')
+
+#     db.session.commit()
+
+#     try:
+#         msg = Message('Your OTP for Verification', recipients=[email])
+#         msg.body = f"Your OTP is {otp_code}. It will expire in 1 minute."
+#         mail.send(msg)
+#         return jsonify({"message": "OTP Sent Successfully! Check your email.", "status": "success", "redirect": redirect_page})
+#     except Exception as e:
+#         print("Error sending OTP:", str(e))
+#         return jsonify({"message": f"Error sending OTP: {str(e)}", "status": "error"})
+
+
 @app.route('/validate', methods=['POST'])
 def validate():
     email = session.get('email')
@@ -108,6 +145,7 @@ def validate():
         return jsonify({"message": "OTP Verified! Signup Successful...", "status": "success", "redirect": url_for('scanner_page')})
 
     return jsonify({"message": "Invalid OTP, please try again.", "status": "error"})
+
 
 # ------------------ System Scanner ------------------ #
 
