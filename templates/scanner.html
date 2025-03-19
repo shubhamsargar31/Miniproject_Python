@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='scanner.css') }}">
 </head>
 <body>
+    <div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
     <div class="label-container">
         <div class="security-label">Services Provide Security</div>
     </div>
-
     <div class="form-container">
         <h2>Security Scanner</h2>
         <div class="input-group">
@@ -68,6 +70,15 @@
                     document.getElementById(resultBox).innerHTML = JSON.stringify(data.result, null, 2);
                 })
                 .catch(error => console.error("Error:", error));
+        }
+        function logout() {
+            fetch("/logout", {
+                    method: "GET"
+                })
+                .then(response => {
+                    window.location.href = "/"; 
+                })
+                .catch(error => console.error("Logout Error:", error));
         }
     </script>
 </body>

@@ -141,6 +141,30 @@ button:hover {
     transition: 0.3s ease-in-out;
 }
 
+.logout-btn {
+    position: fixed;
+    /* Keeps button in a fixed position */
+    top: 10px;
+    /* Distance from the top */
+    right: 10px;
+    /* Distance from the right */
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    /* Adjusts button size */
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    width: fit-content;
+    /* Prevents stretching */
+    text-align: center;
+    display: block;
+    /* Ensures it behaves like a button */
+    z-index: 1000;
+    /* Keeps it above other elements */
+}
 /* Animations */
 @keyframes fadeInUp {
     0% {
