@@ -8,6 +8,7 @@ class Signup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     gmail = db.Column(db.String(40), unique=True, nullable=False)
     otp = db.Column(db.String(50), nullable=False)
+    
 
 # ✅ System Scan Table
 class SystemScan(db.Model):

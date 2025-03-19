@@ -95,13 +95,13 @@ form label {
     border-radius: 6px;
 }
 
-/* Resend OTP एका लाईनमध्ये आणि नीट */
+
 #resend-otp-btn {
     flex: 1;  
     padding: 10px;  
     font-size: 0.85em;  
     max-width: 120px;  
-    background: #ff4d4d;
+    background: #00ffcc;
     border: none;
     color: white;
     border-radius: 6px;
@@ -111,7 +111,7 @@ form label {
 }
 
 #resend-otp-btn:hover {
-    background: #ff3333;
+    background: #00ffcc
 }
 
 #resend-otp-btn:disabled {

@@ -9,7 +9,7 @@ import os
 import platform
 import socket
 import psutil
-from Database import db, init_db,Signup,WebScan,NetworkScan,SystemScan
+from Database import db,init_db,Signup,WebScan,NetworkScan,SystemScan
 
 
 app = Flask(__name__)
@@ -21,13 +21,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 init_db(app)
 
-
 try:
     with open('config.json', 'r') as f:
         params = json.load(f).get('param', {})
 except (FileNotFoundError, json.JSONDecodeError):
     params = {}
-
 
 app.config.update({
     'MAIL_SERVER': 'smtp.gmail.com',
@@ -104,16 +102,17 @@ def validate():
     return jsonify({"message": "Invalid OTP, please try again.", "status": "error"})
 
 # ------------------ System Scanner ------------------ #
+
 @app.route("/scan_system", methods=["POST"])
 def system_scan():
     email = session.get('email')  
     if not email:
         return jsonify({"error": "User not logged in!"}), 401
-
+    
     system_name = request.form.get("systemName")
     if not system_name:
         return jsonify({"error": "No system name provided"}), 400
-
+ 
     try:
         ip_address = socket.gethostbyname(system_name)
         system_info = {
@@ -139,47 +138,66 @@ def system_scan():
         db.session.commit()
 
         return jsonify({"result": system_info})
-
+    
     except socket.gaierror:
         return jsonify({"error": "Invalid system name or IP address"}), 400
 
-# ------------------ Network Scanner ------------------ #
+# ------------------ IP Scanner ------------------ #
+
 @app.route("/start_scan", methods=["POST"])
 def start_scan():
-    email = session.get('email')  
+    email = session.get('email') 
     if not email:
         return jsonify({"error": "User not logged in!"}), 401
 
-    ip = request.form.get("ipAddress")
+    ip = request.form.get("ipAddress")  
+
     if not ip:
         return jsonify({"error": "No IP provided"}), 400
 
     try:
         scanner = nmap.PortScanner()
-        scanner.scan(ip, arguments="-T4 -F")
-        open_ports = list(scanner[ip].all_protocols()) if ip in scanner.all_hosts() else []
+        scan_args = "-sS -T4 -F"  
 
+        scanner.scan(ip, arguments=scan_args)
 
-        scan = NetworkScan(email=email, ip_address=ip, open_ports=", ".join(open_ports))
+        if ip not in scanner.all_hosts():
+            return jsonify({"status": "No open ports found"}), 200
+
+        open_ports = {}
+
+        for protocol in scanner[ip].all_protocols():
+            ports = scanner[ip][protocol].keys()
+            for port in ports:
+                service = scanner[ip][protocol][port]['name']
+                open_ports[port] = service
+
+        
+        scan = NetworkScan(email=email, ip_address=ip, open_ports=", ".join([f"{p}({s})" for p, s in open_ports.items()]))
         db.session.add(scan)
         db.session.commit()
 
-        return jsonify({"result": {"open_ports": open_ports}})
-    
-    except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({
+            "result": {
+                "open_ports": open_ports
+            }
+        })
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
 # ------------------ Web Scanner ------------------ #
+
 @app.route("/scan_website", methods=["POST"])
 def website_scan():
     email = session.get('email')  # ✅ Get logged-in user's email
     if not email:
         return jsonify({"error": "User not logged in!"}), 401
-
     url = request.form.get("website")
     if not url:
         return jsonify({"error": "No URL provided"}), 400
-
+    
     try:
         response = requests.get(url)
         soup = BeautifulSoup(response.text, "html.parser")
@@ -196,12 +214,14 @@ def website_scan():
     
     except Exception as e:
         return jsonify({"error": str(e)})
-# ------------------ Logout ------------------ #
+    
 
+# ------------------ Logout ------------------ #
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
+
 
 # ------------------ Run Flask App ------------------ #
 
