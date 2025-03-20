@@ -128,7 +128,7 @@ def system_scan():
             "CPU Usage": f"{psutil.cpu_percent(interval=1)}%"
         }
 
-        # ✅ Store Scan Data in Database
+        #  Store Scan Data in Database
         scan = SystemScan(email=email, hostname=system_name, ip_address=ip_address,
                           os=system_info["OS"], os_version=system_info["OS Version"],
                           processor=system_info["Processor"], machine=system_info["Machine"],
@@ -191,7 +191,7 @@ def start_scan():
 
 @app.route("/scan_website", methods=["POST"])
 def website_scan():
-    email = session.get('email')  # ✅ Get logged-in user's email
+    email = session.get('email')  #  Get logged-in user's email
     if not email:
         return jsonify({"error": "User not logged in!"}), 401
     url = request.form.get("website")
@@ -205,7 +205,7 @@ def website_scan():
         headers = response.headers
         missing_headers = [h for h in ["Content-Security-Policy", "X-Frame-Options", "X-XSS-Protection", "Strict-Transport-Security"] if h not in headers]
 
-        # ✅ Store Scan Data in Database
+        #  Store Scan Data in Database
         scan = WebScan(email=email, website=url, title=title, missing_headers=", ".join(missing_headers))
         db.session.add(scan)
         db.session.commit()
