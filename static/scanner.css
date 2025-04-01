@@ -4,7 +4,8 @@
 /* General Styles */
 html, body {
     font-family: 'Rajdhani', sans-serif;
-    background: url('back.jpg') no-repeat center center/cover;
+    background: url('back.jpg') no-repeat center center fixed;
+    background-size: cover;
     color: #fff;
     display: flex;
     justify-content: center;
@@ -13,7 +14,7 @@ html, body {
     margin: 0;
     padding: 10px;
     flex-direction: column;
-    overflow: hidden; 
+
 }
 
 /* Label Container */
@@ -143,28 +144,22 @@ button:hover {
 
 .logout-btn {
     position: fixed;
-    /* Keeps button in a fixed position */
     top: 10px;
-    /* Distance from the top */
-    right: 10px;
-    /* Distance from the right */
+    left: 10px;
     background-color: #d9534f;
     color: white;
     border: none;
     padding: 10px 20px;
-    /* Adjusts button size */
     cursor: pointer;
     border-radius: 5px;
     font-size: 16px;
     font-weight: bold;
     width: fit-content;
-    /* Prevents stretching */
     text-align: center;
     display: block;
-    /* Ensures it behaves like a button */
     z-index: 1000;
-    /* Keeps it above other elements */
 }
+
 /* Animations */
 @keyframes fadeInUp {
     0% {

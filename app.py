@@ -9,15 +9,13 @@ import os
 import platform
 import socket
 import psutil
-from Database import db,init_db,Signup,WebScan,NetworkScan,SystemScan
-
+from Database import db, init_db, Signup, WebScan, NetworkScan, SystemScan
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:shubham123@localhost:5432/sign_up'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 
 init_db(app)
 
@@ -38,6 +36,7 @@ app.config.update({
 })
 
 mail = Mail(app)
+
 
 # ------------------ Routes ------------------ #
 
@@ -65,13 +64,14 @@ def send_otp():
     if not email:
         return jsonify({"message": "Please enter a valid email!", "status": "error"})
 
+    # Generate a 6-digit numeric OTP
     otp_code = str(random.randint(100000, 999999))
     session['otp'] = otp_code
     session['email'] = email
 
     user = Signup.query.filter_by(gmail=email).first()
     if user:
-        user.otp = otp_code
+        user.otp = otp_code  # Update OTP for existing user
     else:
         user = Signup(gmail=email, otp=otp_code)
         db.session.add(user)
@@ -95,11 +95,18 @@ def validate():
         return jsonify({"message": "Please enter the OTP!", "status": "error"})
 
     user = Signup.query.filter_by(gmail=email).first()
-    if user and user.otp == entered_otp:
-        session.pop('otp', None)
-        return jsonify({"message": "OTP Verified! Signup Successful...", "status": "success", "redirect": url_for('scanner_page')})
+
+    if user:
+        # Decrypt the stored OTP
+        stored_otp = user.otp_decrypted
+
+        # Compare the decrypted OTP with the entered OTP
+        if stored_otp == entered_otp:
+            session.pop('otp', None)  # Clear OTP from session
+            return jsonify({"message": "OTP Verified! Signup Successful...", "status": "success", "redirect": url_for('scanner_page')})
 
     return jsonify({"message": "Invalid OTP, please try again.", "status": "error"})
+
 
 # ------------------ System Scanner ------------------ #
 
@@ -125,10 +132,9 @@ def system_scan():
             "Machine": platform.machine(),
             "Running Processes": len(psutil.pids()),
             "Memory Usage": f"{psutil.virtual_memory().percent}%",
-            "CPU Usage": f"{psutil.cpu_percent(interval=1)}%"
+            "CPU Usage": f"{psutil.cpu_percent(interval=0.1)}%"
         }
 
-        #  Store Scan Data in Database
         scan = SystemScan(email=email, hostname=system_name, ip_address=ip_address,
                           os=system_info["OS"], os_version=system_info["OS Version"],
                           processor=system_info["Processor"], machine=system_info["Machine"],
@@ -141,6 +147,45 @@ def system_scan():
     
     except socket.gaierror:
         return jsonify({"error": "Invalid system name or IP address"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# ------------------ Web Scanner ------------------ #
+
+
+@app.route("/scan_website", methods=["POST"])
+def website_scan():
+    email = session.get('email')  
+    if not email:
+        return jsonify({"error": "User not logged in!"}), 401
+    
+    url = request.form.get("website")
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+    
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        title = soup.title.string if soup.title else "No Title Found"
+
+        headers = response.headers
+        missing_headers = [
+            h for h in ["Content-Security-Policy", "X-Frame-Options", "X-XSS-Protection", "Strict-Transport-Security"]
+            if h not in headers
+        ]
+
+        # Store WebScan Data in Database with encryption
+        scan = WebScan(email=email, website=url, title=title, missing_headers=", ".join(missing_headers))
+        db.session.add(scan)
+        db.session.commit()
+
+        return jsonify({"result": {"title": title, "missing_headers": missing_headers}})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)})
+    
 
 # ------------------ IP Scanner ------------------ #
 
@@ -172,7 +217,6 @@ def start_scan():
                 service = scanner[ip][protocol][port]['name']
                 open_ports[port] = service
 
-        
         scan = NetworkScan(email=email, ip_address=ip, open_ports=", ".join([f"{p}({s})" for p, s in open_ports.items()]))
         db.session.add(scan)
         db.session.commit()
@@ -186,37 +230,8 @@ def start_scan():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    
-# ------------------ Web Scanner ------------------ #
-
-@app.route("/scan_website", methods=["POST"])
-def website_scan():
-    email = session.get('email')  #  Get logged-in user's email
-    if not email:
-        return jsonify({"error": "User not logged in!"}), 401
-    url = request.form.get("website")
-    if not url:
-        return jsonify({"error": "No URL provided"}), 400
-    
-    try:
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        title = soup.title.string if soup.title else "No Title Found"
-        headers = response.headers
-        missing_headers = [h for h in ["Content-Security-Policy", "X-Frame-Options", "X-XSS-Protection", "Strict-Transport-Security"] if h not in headers]
-
-        #  Store Scan Data in Database
-        scan = WebScan(email=email, website=url, title=title, missing_headers=", ".join(missing_headers))
-        db.session.add(scan)
-        db.session.commit()
-
-        return jsonify({"result": {"title": title, "missing_headers": missing_headers}})
-    
-    except Exception as e:
-        return jsonify({"error": str(e)})
-    
-
 # ------------------ Logout ------------------ #
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -224,6 +239,5 @@ def logout():
 
 
 # ------------------ Run Flask App ------------------ #
-
 if __name__ == "__main__":
     app.run(debug=True)
